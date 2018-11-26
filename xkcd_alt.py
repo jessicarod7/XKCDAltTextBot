@@ -28,7 +28,7 @@ class Twitter():
             if attempt == 5: # Too many attempts
                 print('Twitter search failed, see below response.')
                 print('HTTP error code: {}'.format(str(comic_raw.status_code)))
-                print('Twitter error message:\n\n{}'.format(alt_raw.json()))
+                print('Twitter error message:\n\n{}'.format(comic_raw.json()))
                 return 'crash' # Enter log protection mode
             alt_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
                                     params=alt_payload, auth=self.auth)
@@ -42,6 +42,9 @@ class Twitter():
                 time.sleep(300) # sleep for 5 minutes and reattempt
                 continue
             else: # Other problem in code
+                print('Twitter search failed, see below response.')
+                print('HTTP error code: {}'.format(str(comic_raw.status_code)))
+                print('Twitter error message:\n\n{}'.format(comic_raw.json()))
                 return 'crash' # Enter log protection mode
             
             # Convert to JSON
@@ -58,12 +61,39 @@ class Twitter():
                 return None # Sleep for 60 seconds
             else:
                 # This tweet has not been replied to
-                return comic['statuses'][0]['entities']['urls'][0]['expanded_url'] # Return XKCD URL
+                return comic['statuses'][0] # Return comic Tweet
 
 
-    def post(self, tweet):
+    def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to @xkcdComic."""
-        pass
+        print('Tweeting...')
+
+        tweet_payload = {'status': tweet, 'in_reply_to_status_id': reply,
+                         'auto_populate_reply_metadata': 'true'}
+        
+        # POST Tweet
+        for attempt in range(6):
+            if attempt == 5: # Too many attempts
+                print('Tweeting failed, see below response.')
+                print('HTTP error code: {}'.format(str(tweet.status_code)))
+                print('Twitter error message:\n\n{}'.format(tweet.json()))
+                return 'crash' # Enter log protection mode
+
+            tweet = requests.post('https://api.twitter.com/1.1/statuses/update.json', json=tweet_payload,
+                        auth=self.auth)
+            
+            if tweet.status_code == 200: # Good request
+                print('Successfully Tweeted:\n\n{}'.format(tweet.json()))
+            elif tweet.status_code >= 429 or tweet.status_code == 420 or \
+            tweet.status_code == 403:
+                # Twitter issue or rate limiting
+                time.sleep(300) # sleep for 5 minutes and reattempt
+                continue
+            else: # Other problem in code
+                print('Tweeting failed, see below response.')
+                print('HTTP error code: {}'.format(str(tweet.status_code)))
+                print('Twitter error message:\n\n{}'.format(tweet.json()))
+                return 'crash' # Enter log protection mode
 
 def get_auth():
     """This function retrieves the API keys and access tokens from environmental variables."""
@@ -114,3 +144,11 @@ def retrieve_text(site):
     print('Tweet constructed')
     del html_raw, html, comic, title
     return tweet
+
+def crash():
+    """This function protects logs by pinging google.com every 20 minutes."""
+    while True:
+        a = requests.get('https://google.com') # Ping Google
+        del a
+        time.sleep(1200)
+        continue
