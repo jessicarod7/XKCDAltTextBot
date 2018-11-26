@@ -16,8 +16,50 @@ class Twitter():
         self.auth = auth
     
     def get(self):
-        """This function returns the result of the Twitter search for the reply to @xkcdComic."""
-        pass
+        """This function determines if a new comic has been posted, and returns it.
+        
+        Mentions of 'comic' refer to @xkcdComic, mentions of 'alt' refer to @XKCDAltTextBot."""
+        # Build payloads for comic bot and alt text bot search
+        comic_payload = {'q': 'from:xkcdComic', 'result_type': 'recent', 'count': '1'}
+        alt_payload = {'q': 'from:XKCDAltTextBot', 'result_type': 'recent', 'count': '1'}
+
+        # Retrieve data from Twitter searches
+        for attempt in range(6):
+            if attempt == 5: # Too many attempts
+                print('Twitter search failed, see below response.')
+                print('HTTP error code: {}'.format(str(comic_raw.status_code)))
+                print('Twitter error message:\n\n{}'.format(alt_raw.json()))
+                return 'crash' # Enter log protection mode
+            alt_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+                                    params=alt_payload, auth=self.auth)
+            comic_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+                                    params=comic_payload, auth=self.auth)
+            
+            if comic_raw.status_code == 200: # Good request
+                pass
+            elif comic_raw.status_code >= 429 or comic_raw.status_code == 420:
+                # Twitter issue or rate limiting
+                time.sleep(300) # sleep for 5 minutes and reattempt
+                continue
+            else: # Other problem in code
+                return 'crash' # Enter log protection mode
+            
+            # Convert to JSON
+            alt = alt_raw.json()
+            comic = comic_raw.json()
+
+            if alt['statuses'][0]['id'] is None or \
+            comic['statuses'][0]['in_reply_to_status_id'] is None:
+                print('Twitter search failed: No Tweet found')
+                return 'crash' # Enter log protection mode
+            
+            if alt['statuses'][0]['id'] == comic['statuses'][0]['in_reply_to_status_id']:
+                # This tweet has already been replied to
+                return None # Sleep for 60 seconds
+            else:
+                # This tweet has not been replied to
+                return comic['statuses'][0]['entities']['urls'][0]['expanded_url'] # Return XKCD URL
+
 
     def post(self, tweet):
         """This function Tweets the alt (title) text as a reply to @xkcdComic."""
