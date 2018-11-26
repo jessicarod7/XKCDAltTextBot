@@ -26,10 +26,12 @@ class Twitter():
         # Retrieve data from Twitter searches
         for attempt in range(6):
             if attempt == 5: # Too many attempts
-                print('Twitter search failed, see below response.')
-                print('HTTP error code: {}'.format(str(comic_raw.status_code)))
+                print('Twitter search failed ({}), see below response.'.format(str(comic_raw.status_code)))
                 print('Twitter error message:\n\n{}'.format(comic_raw.json()))
+                del alt_payload, comic_payload
                 return 'crash' # Enter log protection mode
+            
+            print('Searching for new comics...')
             alt_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
                                     params=alt_payload, auth=self.auth)
             comic_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
@@ -39,12 +41,15 @@ class Twitter():
                 pass
             elif comic_raw.status_code >= 429 or comic_raw.status_code == 420:
                 # Twitter issue or rate limiting
+                print('Twitter search failed ({})'.format(comic_raw.status_code))
+                print('Reattempting in 5 minutes...')
                 time.sleep(300) # sleep for 5 minutes and reattempt
                 continue
             else: # Other problem in code
-                print('Twitter search failed, see below response.')
-                print('HTTP error code: {}'.format(str(comic_raw.status_code)))
+                print('Twitter search failed ({}), see below '.format(str(comic_raw.status_code)) +
+                      'response.')
                 print('Twitter error message:\n\n{}'.format(comic_raw.json()))
+                del alt_payload, comic_payload, alt_raw, comic_raw
                 return 'crash' # Enter log protection mode
             
             # Convert to JSON
@@ -54,13 +59,16 @@ class Twitter():
             if alt['statuses'][0]['id'] is None or \
             comic['statuses'][0]['in_reply_to_status_id'] is None:
                 print('Twitter search failed: No Tweet found')
+                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return 'crash' # Enter log protection mode
             
             if alt['statuses'][0]['id'] == comic['statuses'][0]['in_reply_to_status_id']:
                 # This tweet has already been replied to
+                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return None # Sleep for 60 seconds
             else:
                 # This tweet has not been replied to
+                del alt_payload, comic_payload, alt_raw, comic_raw, alt
                 return comic['statuses'][0] # Return comic Tweet
 
 
@@ -74,9 +82,9 @@ class Twitter():
         # POST Tweet
         for attempt in range(6):
             if attempt == 5: # Too many attempts
-                print('Tweeting failed, see below response.')
-                print('HTTP error code: {}'.format(str(tweet.status_code)))
+                print('Tweeting failed ({}), see below response.'.format(str(tweet.status_code)))
                 print('Twitter error message:\n\n{}'.format(tweet.json()))
+                del tweet_payload
                 return 'crash' # Enter log protection mode
 
             tweet = requests.post('https://api.twitter.com/1.1/statuses/update.json', json=tweet_payload,
@@ -84,26 +92,31 @@ class Twitter():
             
             if tweet.status_code == 200: # Good request
                 print('Successfully Tweeted:\n\n{}'.format(tweet.json()))
+                del tweet, tweet_payload
+                return None
             elif tweet.status_code >= 429 or tweet.status_code == 420 or \
             tweet.status_code == 403:
                 # Twitter issue or rate limiting
+                print('Tweeting failed ({})'.format(tweet.status_code))
+                print('Reattempting in 5 minutes...')
                 time.sleep(300) # sleep for 5 minutes and reattempt
                 continue
             else: # Other problem in code
-                print('Tweeting failed, see below response.')
-                print('HTTP error code: {}'.format(str(tweet.status_code)))
+                print('Tweeting failed ({}), see below response.'.format(str(tweet.status_code)))
                 print('Twitter error message:\n\n{}'.format(tweet.json()))
+                del tweet, tweet_payload
                 return 'crash' # Enter log protection mode
 
 def get_auth():
     """This function retrieves the API keys and access tokens from environmental variables."""
+    print("Building OAuth header...")
     key = [os.environ.get('XKCD_API_KEY', None),
            os.environ.get('XKCD_API_SECRET_KEY', None),
            os.environ.get('XKCD_ACCESS_TOKEN', None),
            os.environ.get('XKCD_ACCESS_SECRET_TOKEN', None)]
     for i in key:
         if i is None: # Verify keys were loaded
-            print("OAuth initiation failed: Environmental variable {} not found".format(i+1))
+            print("OAuth initiation failed: Environmental variable not found")
             del key
             return 'crash' # Enter log protection mode
 
@@ -147,8 +160,39 @@ def retrieve_text(site):
 
 def crash():
     """This function protects logs by pinging google.com every 20 minutes."""
+    print('Entering log protection mode.')
     while True:
         a = requests.get('https://google.com') # Ping Google
         del a
         time.sleep(1200)
         continue
+
+# Main program
+# All mentions of 'crash' mean the program has, and is entering log protection mode
+auth = get_auth() # Build authentication header
+if auth == 'crash':
+    crash()
+twitter = Twitter(auth)
+
+while True: # Initialize main account loop
+    original_tweet = twitter.get() # Check for new comics
+
+    if original_tweet == 'crash':
+        crash()
+    elif original_tweet is None:
+        print('No new comics found. Sleeping for 60 seconds...')
+        time.sleep(60)
+        continue
+    else:
+        body = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url']) # Build Tweet
+        if body == 'crash':
+            crash()
+        
+        result = twitter.post(body, original_tweet['id_str']) # Post Tweet
+
+        if result == 'crash':
+            crash()
+        elif result is None: # Successful Tweet
+            print('Sleeping for 60 seconds...')
+            time.sleep(60)
+            continue
