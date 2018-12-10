@@ -5,6 +5,8 @@ linked comic, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
 import os # API keys & access tokens
+import math # Round up number of tweets needed
+import re # Split Tweets by spaces
 import requests # Accessing API
 from requests_oauthlib import OAuth1 # OAuth
 from bs4 import BeautifulSoup # HTML searching
@@ -15,7 +17,7 @@ class Twitter():
         """This class constructor collects the OAuth keys for the class."""
         self.auth = auth
     
-    def get(self):
+    def get(self, ):
         """This function determines if a new comic has been posted, and returns it.
         
         Mentions of 'comic' refer to @xkcdComic, mentions of 'alt' refer to @XKCDAltTextBot."""
@@ -87,8 +89,8 @@ class Twitter():
                 del tweet_payload
                 return 'crash' # Enter log protection mode
 
-            tweet = requests.post('https://api.twitter.com/1.1/statuses/update.json', json=tweet_payload,
-                        auth=self.auth)
+            tweet = requests.post('https://api.twitter.com/1.1/statuses/update.json',
+                                  data=tweet_payload, auth=self.auth)
             
             if tweet.status_code == 200: # Good request
                 print('Successfully Tweeted:\n\n{}'.format(tweet.json()))
@@ -106,7 +108,18 @@ class Twitter():
                 print('Twitter error message:\n\n{}'.format(tweet.json()))
                 del tweet, tweet_payload
                 return 'crash' # Enter log protection mode
+    
+    def tweetstorm(self, body, num_tweets, orig_tweet):
+        """This function posts a chain of tweets if the full Tweet is longer than 280 characters."""
+        status = [] # The individual Tweets
+        seek = 0 # location in body
 
+        while True: # Split the tweet into smaller parts
+            snip = re.search(' ', body[seek:seek+280]) #
+
+
+
+        
 def get_auth():
     """This function retrieves the API keys and access tokens from environmental variables."""
     print("Building OAuth header...")
@@ -154,9 +167,14 @@ def retrieve_text(site):
     title = comic['title'] # Extracts the title text
     tweet = 'Alt/title text: "{}"'.format(title) # Construct the main Tweet body
 
+    if len(tweet) <= 280: # Char limit
+        num_tweets = 1 # The number of tweets that must be created
+    else:
+        num_tweets = math.ceil(len(tweet) / 280)
+
     print('Tweet constructed')
     del html_raw, html, comic, title
-    return tweet
+    return [tweet, num_tweets]
 
 def crash():
     """This function protects logs by pinging google.com every 20 minutes."""
@@ -183,16 +201,20 @@ while True: # Initialize main account loop
         print('No new comics found. Sleeping for 60 seconds...')
         time.sleep(60)
         continue
-    else:
-        body = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url']) # Build Tweet
+    else: # Retrieve text
+        [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
         if body == 'crash':
             crash()
-        
-        result = twitter.post(body, original_tweet['id_str']) # Post Tweet
 
+        if num_tweets == 1:
+            result = twitter.post(body, original_tweet['id_str']) # Post one Tweet
+        else:
+            result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
         if result == 'crash':
-            crash()
+                    crash()
+
         elif result is None: # Successful Tweet
+            del result
             print('Sleeping for 60 seconds...')
             time.sleep(60)
             continue
