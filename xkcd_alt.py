@@ -6,7 +6,6 @@ linked comic, extracts the image alt text, and Tweets it as a reply."""
 import time # Program sleeping
 import os # API keys & access tokens
 import math # Round up number of tweets needed
-import re # Split Tweets by spaces
 import requests # Accessing API
 from requests_oauthlib import OAuth1 # OAuth
 from bs4 import BeautifulSoup # HTML searching
@@ -94,8 +93,8 @@ class Twitter():
             
             if tweet.status_code == 200: # Good request
                 print('Successfully Tweeted:\n\n{}'.format(tweet.json()))
-                del tweet, tweet_payload
-                return None
+                del tweet_payload
+                return tweet.json()
             elif tweet.status_code >= 429 or tweet.status_code == 420 or \
             tweet.status_code == 403:
                 # Twitter issue or rate limiting
@@ -111,14 +110,26 @@ class Twitter():
     
     def tweetstorm(self, body, num_tweets, orig_tweet):
         """This function posts a chain of tweets if the full Tweet is longer than 280 characters."""
-        status = [] # The individual Tweets
-        seek = 0 # location in body
+        seek = 0 # Location in body of text
 
-        while True: # Split the tweet into smaller parts
-            snip = re.search(' ', body[seek:seek+280]) #
-
-
-
+        for n in range(num_tweets): # Post each individual tweet // twit: a short tweet
+            if (n+1) < num_tweets:
+                endspace = body[seek:seek+280].rfind(' ') # Find the last space under 280 chars
+                twit = body[seek:endspace] # Get up to 280 chars of full words
+            else: # Final tweet
+                twit = body[seek:] # Use the remaining characters
+            
+            if n is 0:
+                result = self.post(twit, orig_tweet) # Reply to the original tweet
+            else:
+                result = self.post(twit, reply_to) # Reply to the previous tweet
+            if result is 'crash':
+                return 'crash' # Enter log protection mode
+            
+            reply_to = result['id_str'] # Tweet for next twit to reply to
+            seek += endspace + 1 # Start the next sequence from after the space
+        
+        return None
         
 def get_auth():
     """This function retrieves the API keys and access tokens from environmental variables."""
@@ -213,7 +224,7 @@ while True: # Initialize main account loop
         if result == 'crash':
                     crash()
 
-        elif result is None: # Successful Tweet
+        else: # Successful Tweet
             del result
             print('Sleeping for 60 seconds...')
             time.sleep(60)
