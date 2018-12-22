@@ -12,7 +12,7 @@ This bot is designed to run on [Heroku](https://www.heroku.com/), but it should 
 
 ### General Instructions (Start here.)
 
-Download the latest version of the bot as a ```.zip``` file [here], and extract it to your preferred folder.
+Download the latest version of the bot as a ```.zip``` file [here](https://github.com/cam-rod/XKCDAltTextBot/releases/latest), and extract it to your preferred folder.
 
 Obtain your Twitter API and access keys [here](https://developer.twitter.com). Then, change the respective names of the environmental variables on lines 137-140 of [the program](xkcd_alt.py) in this format:
 
