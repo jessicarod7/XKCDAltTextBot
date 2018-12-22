@@ -1,0 +1,1 @@
+worker: python xkcd_alt.py

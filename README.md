@@ -35,7 +35,16 @@ Add your API keys and access tokens to your environmental variables by following
 
 ### --> Running on Heroku
 
-Details are coming soon!
+Sign into Heroku and ensure the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) is installed and logged in. [Create a new app](https://dashboard.heroku.com/new-app) with your choice of name. Then, add your environmental/config variables by clicking *Reveal config vars* inside the settings tab of your new dashboard. Add them in this format: ```YOUR_API_KEY_HERE_ALL_CAPS``` ```apikey```
+
+Open the command line inside the folder with your program and run the following commands:
+
+```console
+$ heroku git:remote -a yourappname
+$ git push heroku master
+```
+
+You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes.
 
 ## Forks and Contributing
 
