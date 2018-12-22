@@ -17,7 +17,7 @@ Download the latest version of the bot as a ```.zip``` file [here](https://githu
 Obtain your Twitter API and access keys [here](https://developer.twitter.com). Then, change the respective names of the environmental variables on lines 137-140 of [the program](xkcd_alt.py) in this format:
 
 ```python
-key = [os.environ.get('YOUR_API_KEY_HERE_ALL CAPS', None),
+key = [os.environ.get('YOUR_API_KEY_HERE_ALL_CAPS', None),
            os.environ.get('YOUR_API_SECRET_KEY_HERE_ALL_CAPS', None),
            os.environ.get('YOUR_ACCESS_TOKEN_HERE_ALL_CAPS', None),
            os.environ.get('YOUR_ACCESS_SECRET_TOKEN_HERE_ALL_CAPS', None)]
