@@ -21,8 +21,8 @@ class Twitter():
         
         Mentions of 'comic' refer to @xkcdComic, mentions of 'alt' refer to @XKCDAltTextBot."""
         # Build payloads for comic bot and alt text bot search
-        comic_payload = {'q': 'from:xkcdComic', 'result_type': 'recent', 'count': '1'}
         alt_payload = {'q': 'from:XKCDAltTextBot', 'result_type': 'recent', 'count': '1'}
+        comic_payload = {'q': 'from:xkcdComic', 'result_type': 'recent', 'count': '1'}
 
         # Retrieve data from Twitter searches
         for attempt in range(6):
@@ -57,13 +57,13 @@ class Twitter():
             alt = alt_raw.json()
             comic = comic_raw.json()
 
-            if alt['statuses'][0]['id'] is None or \
-            comic['statuses'][0]['in_reply_to_status_id'] is None:
+            if alt['statuses'][0]['in_reply_to_status_id'] is None or \
+            comic['statuses'][0]['id'] is None:
                 print('Twitter search failed: No Tweet found')
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return 'crash' # Enter log protection mode
             
-            if alt['statuses'][0]['id'] == comic['statuses'][0]['in_reply_to_status_id']:
+            if alt['statuses'][0]['in_reply_to_status_id'] == comic['statuses'][0]['id']:
                 # This tweet has already been replied to
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return None # Sleep for 60 seconds
@@ -154,7 +154,7 @@ def retrieve_text(site):
     """This retrieves the HTML of the website, isolates the image title text, and formats it for the
     Tweet."""
     for attempt in range(11):
-        print('Accessing {} (attempt {} of 11'.format(site, attempt+1))
+        print('Accessing {} (attempt {} of 11)'.format(site, attempt+1))
         html_raw = requests.get(site) # Retrieving raw HTML data
         if html_raw.status_code != 200: # Data not successfully retrieved
             if attempt < 6:
@@ -168,8 +168,10 @@ def retrieve_text(site):
             else:
                 print('XKCD retrieval failed: could not access {}'.format(site))
                 return 'crash' # Enter log protection mode
+        else: # Data retrieved
+            break
                 
-    html = BeautifulSoup(html_raw, 'html.parser')
+    html = BeautifulSoup(html_raw.text, 'html.parser')
     comic = html.find('img', title=True) # Locates the only image with title text (the comic)
     if comic is None:
         print('Title extraction failed: image not found')
