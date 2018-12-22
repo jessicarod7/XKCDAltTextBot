@@ -42,6 +42,7 @@ Open the command line inside the folder with your program and run the following 
 ```console
 $ heroku git:remote -a yourappname
 $ git push heroku master
+$ heroku ps:scale worker=1
 ```
 
 You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes.
