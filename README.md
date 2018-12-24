@@ -45,7 +45,7 @@ $ git push heroku master
 $ heroku ps:scale worker=1
 ```
 
-You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes.
+You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes. The standard pattern for error messages is ```Entering log protection mode.```
 
 ## Forks and Contributing
 
