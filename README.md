@@ -31,7 +31,7 @@ Make all other modifications to the accounts you would like to interact with, an
 
 You will need the [Requests](http://www.python-requests.org/en/latest/), [Requests-OAuthlib](https://requests-oauthlib.readthedocs.io/en/latest/), and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) libraries. If you have [Pipenv](https://pipenv.readthedocs.io/en/latest/), you can install them by running the command ```pipenv install``` inside the folder; otherwise, run ```pip install -r requirements.txt```.
 
-Add your API keys and access tokens to your environmental variables by following [these instructions](https://java.com/en/download/help/path.xml). Then, just run ```python xkcd_alt.py``` in your command line and let it run! The bot respects the Twitter API limits, and will run every 60 seconds as long as the command line is open.
+Add your API keys and access tokens to your environmental variables by following [these instructions](https://java.com/en/download/help/path.xml). Then, just run ```python xkcd_alt.py``` in your command line and let it run! The bot respects the Twitter API limits, and will run every 15 seconds as long as the command line is open.
 
 ### --> Running on Heroku
 
@@ -45,7 +45,7 @@ $ git push heroku master
 $ heroku ps:scale worker=1
 ```
 
-You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes. The standard pattern for error messages is ```Entering log protection mode.```
+The program will now run once every 15 seconds. You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes. The standard pattern for error messages is ```Entering log protection mode.```
 
 ## Forks and Contributing
 

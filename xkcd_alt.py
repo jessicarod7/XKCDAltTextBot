@@ -211,8 +211,8 @@ while True: # Initialize main account loop
     if original_tweet == 'crash':
         crash()
     elif original_tweet is None:
-        print('No new comics found. Sleeping for 60 seconds...')
-        time.sleep(60)
+        print('No new comics found. Sleeping for 15 seconds...')
+        time.sleep(15)
         continue
     else: # Retrieve text
         [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
@@ -228,6 +228,6 @@ while True: # Initialize main account loop
 
         else: # Successful Tweet
             del result
-            print('Sleeping for 60 seconds...')
-            time.sleep(60)
+            print('Sleeping for 15 seconds...')
+            time.sleep(15)
             continue
