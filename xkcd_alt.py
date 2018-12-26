@@ -1,6 +1,6 @@
 """This is the XKCD Alt Text Bot.
 
-This bot checks once a minute for new Tweets from @xkcdComic. If one is found, it accesses the
+This bot checks once every 15 seconds for new Tweets from @xkcdComic. If one is found, it accesses the
 linked comic, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
@@ -228,6 +228,6 @@ while True: # Initialize main account loop
 
         else: # Successful Tweet
             del result
-            print('Sleeping for 15 seconds...')
-            time.sleep(15)
+            print('Sleeping for 60 seconds...')
+            time.sleep(60)
             continue

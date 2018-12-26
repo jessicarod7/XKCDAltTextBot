@@ -45,7 +45,7 @@ $ git push heroku master
 $ heroku ps:scale worker=1
 ```
 
-The program will now run once every 15 seconds. You should also install the [Logentries addon](https://elements.heroku.com/addons/logentries) to notify yourself of errors or crashes. The standard pattern for error messages is ```Entering log protection mode.```
+The program will now run once every 15 seconds. You should also install a log retention service to notify yourself of errors or crashes. The standard pattern for error messages is ```Entering log protection mode.```
 
 ## Forks and Contributing
 
