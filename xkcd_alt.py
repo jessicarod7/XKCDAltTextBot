@@ -82,7 +82,6 @@ class Twitter():
                 # This tweet has not been replied to
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt
                 return comic['statuses'][0] # Return comic Tweet
-            print('damn it')
 
 
     def post(self, tweet, reply):
