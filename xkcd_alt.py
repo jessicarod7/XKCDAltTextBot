@@ -73,14 +73,16 @@ class Twitter():
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return 'crash' # Enter log protection mode
                 
-            if alt_replies.index(comic['statuses'][0]['id']):
-                # This tweet has already been replied to
-                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
-                return None # Sleep for 60 seconds
-            else:
+            try:
+                if alt_replies.index(comic['statuses'][0]['id']) is not ValueError:
+                    # This tweet has already been replied to
+                    del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                    return None # Sleep for 15 seconds
+            except ValueError:
                 # This tweet has not been replied to
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt
                 return comic['statuses'][0] # Return comic Tweet
+            print('damn it')
 
 
     def post(self, tweet, reply):
