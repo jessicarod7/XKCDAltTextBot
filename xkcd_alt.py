@@ -63,8 +63,7 @@ class Twitter():
                            range(len(alt['statuses']))]
 
             try:
-                if alt['statuses'][0]['in_reply_to_status_id'] is None or \
-                comic['statuses'][0]['id'] is None:
+                if comic['statuses'][0]['id'] is None:
                     print('Twitter search failed: No Tweet found')
                     del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                     return 'crash' # Enter log protection mode
@@ -78,8 +77,8 @@ class Twitter():
                     # This tweet has already been replied to
                     del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                     return None # Sleep for 15 seconds
-            except ValueError:
-                # This tweet has not been replied to
+            except (ValueError, NameError):
+                # This tweet has not been replied to or no tweets have been posted yet
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt
                 return comic['statuses'][0] # Return comic Tweet
 
