@@ -4,6 +4,9 @@ This bot checks once every 15 seconds for new Tweets from @xkcdComic. If one is 
 linked comic, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
+import datetime # Cancels Tweet if older than 12 hours
+import calendar # Converts calendar abbreviation to integer
+from dateutil.tz import gettz # Switches to UTC in recent Tweet check
 import os # API keys & access tokens
 import math # Round up number of tweets needed
 import re # Finds the most recent bot tweet
@@ -78,10 +81,24 @@ class Twitter():
                     del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                     return None # Sleep for 15 seconds
             except (ValueError, NameError):
-                # This tweet has not been replied to or no tweets have been posted yet
-                del alt_payload, comic_payload, alt_raw, comic_raw, alt
-                return comic['statuses'][0] # Return comic Tweet
+                # This tweet does not appear in the search results, check if <12 hrs
+                tweet_time_str = datetime.datetime(
+                    int(comic['statuses'][0]['created_at'][-4:]),
+                    list(calendar.month_abbr).index(comic['statuses'][0]['created_at'][4:7]),
+                    int(comic['statuses'][0]['created_at'][8:10]),
+                    int(comic['statuses'][0]['created_at'][11:13]),
+                    int(comic['statuses'][0]['created_at'][14:16]),
+                    int(comic['statuses'][0]['created_at'][17:19]),
+                    0,
+                    gettz('UTC')
+                )
+                tweet_time = time.mktime(tweet_time_str.timetuple())
 
+                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                if time.time() - tweet_time > 43200: # Cancel Tweet attempt
+                    return None
+                else:
+                    return comic['statuses'][0] # Return comic Tweet
 
     def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to @xkcdComic."""
