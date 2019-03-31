@@ -92,11 +92,12 @@ class Twitter():
                     0,
                     gettz('UTC')
                 )
-                tweet_time = time.mktime(tweet_time_str.timetuple())
+                # Twitter API adds 3 hours for some painful reason
+                tweet_time = time.mktime(tweet_time_str.timetuple()) - 10800
 
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
-                if time.time() - tweet_time > 43200: # Cancel Tweet attempt
-                    return None
+                if time.mktime(datetime.datetime.utcnow().timetuple()) - tweet_time > 43200:
+                    return None # Cancel Tweet attempt
                 else:
                     return comic['statuses'][0] # Return comic Tweet
 
