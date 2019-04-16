@@ -4,9 +4,6 @@ This bot checks once every 15 seconds for new Tweets from @xkcdComic. If one is 
 linked comic, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
-import datetime # Cancels Tweet if older than 12 hours
-import calendar # Converts calendar abbreviation to integer
-from dateutil.tz import gettz # Switches to UTC in recent Tweet check
 import os # API keys & access tokens
 import math # Round up number of tweets needed
 import re # Finds the most recent bot tweet
@@ -75,32 +72,12 @@ class Twitter():
                 del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
                 return 'crash' # Enter log protection mode
                 
-            try:
-                if alt_replies.index(comic['statuses'][0]['id']) is not ValueError:
-                    # This tweet has already been replied to
-                    del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
-                    return None # Sleep for 15 seconds
-            except (ValueError, NameError):
-                # This tweet does not appear in the search results, check if <12 hrs
-                tweet_time_str = datetime.datetime(
-                    int(comic['statuses'][0]['created_at'][-4:]),
-                    list(calendar.month_abbr).index(comic['statuses'][0]['created_at'][4:7]),
-                    int(comic['statuses'][0]['created_at'][8:10]),
-                    int(comic['statuses'][0]['created_at'][11:13]),
-                    int(comic['statuses'][0]['created_at'][14:16]),
-                    int(comic['statuses'][0]['created_at'][17:19]),
-                    0,
-                    gettz('UTC')
-                )
-                # Twitter API adds 3 hours for some painful reason
-                tweet_time = time.mktime(tweet_time_str.timetuple()) - 10800
-
-                del alt_payload, comic_payload, alt_raw, comic_raw, alt
-                if time.mktime(datetime.datetime.utcnow().timetuple()) - tweet_time > 43200:
-                    del comic
-                    return None # Cancel Tweet attempt
-                else:
-                    return comic['statuses'][0] # Return comic Tweet
+            if alt_replies.index(comic['statuses'][0]['id']) is not ValueError:
+                # This tweet has already been replied to
+                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                return None # Sleep for 15 seconds
+            else: # Supposedly valid Tweet
+                return comic['statuses'][0] # Return comic Tweet
 
     def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to @xkcdComic."""
@@ -126,6 +103,9 @@ class Twitter():
                 return tweet.json()
             elif tweet.status_code >= 429 or tweet.status_code == 420 or \
             tweet.status_code == 403:
+                if tweet.json()['errors'][0]['code'] == 187: # Duplicate Tweet
+                    print('Duplicate Tweet detected, ending attempt.')
+                    return None
                 # Twitter issue or rate limiting
                 print('Tweeting failed ({})'.format(tweet.status_code))
                 print('Reattempting in 5 minutes...')
@@ -254,7 +234,6 @@ while True: # Initialize main account loop
             result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
         if result == 'crash':
                     crash()
-
         else: # Successful Tweet
             del result
             print('Sleeping for 60 seconds...')
