@@ -216,27 +216,38 @@ if auth == 'crash':
 twitter = Twitter(auth)
 
 while True: # Initialize main account loop
-    original_tweet = twitter.get() # Check for new comics
+    new_tweet_check = None
 
-    if original_tweet == 'crash':
-        crash()
-    elif original_tweet is None:
-        print('No new comics found. Sleeping for 15 seconds...')
-        time.sleep(15)
-        continue
-    else: # Retrieve text
-        [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
-        if body == 'crash':
+    for i in range(2):
+        original_tweet = twitter.get() # Check for new comics
+
+        if original_tweet == 'crash':
             crash()
-
-        if num_tweets == 1:
-            result = twitter.post(body, original_tweet['id_str']) # Post one Tweet
+        elif original_tweet is None:
+            print('No new comics found. Sleeping for 15 seconds...')
+            time.sleep(15)
+            break
         else:
-            result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
-        if result == 'crash':
+            if new_tweet_check is None: # Unverified new Tweet
+                new_tweet_check = original_tweet
+                print('Potential new comic. Waiting 15 seconds to verify...')
+                continue
+            elif new_tweet_check == original_tweet: # Confirmed new Tweet
+                [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
+                if body == 'crash':
                     crash()
-        else: # Successful Tweet
-            del result
-            print('Sleeping for 60 seconds...')
-            time.sleep(60)
-            continue
+
+                if num_tweets == 1:
+                    result = twitter.post(body, original_tweet['id_str']) # Post one Tweet
+                else:
+                    result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
+                if result == 'crash':
+                            crash()
+                else: # Successful Tweet
+                    del result
+                    print('Sleeping for 60 seconds...')
+                    time.sleep(60)
+                    break
+            else:
+                print('Twitter search returned existing comic. Sleeping for 15 seconds...')
+                break
