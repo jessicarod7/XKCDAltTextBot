@@ -9,6 +9,7 @@ verify_ssl = true
 requests = "*"
 requests-oauthlib = "*"
 bs4 = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.7"
