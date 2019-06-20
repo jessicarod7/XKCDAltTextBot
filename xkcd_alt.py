@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup # HTML searching
 LOG_NAME = None
 BOT = None
 TARGET = None
+WHERE = 0
 
 class Twitter():
     """This class handles all API requests to Twitter."""
@@ -148,7 +149,7 @@ class Twitter():
         
 def get_config():
     """This function retrieves API keys, access tokens, and other key data from the config file."""
-    global LOG_NAME, TARGET, BOT
+    global LOG_NAME, TARGET, WHERE, BOT
 
     print("Building OAuth header...")
     with open('config.yaml') as config_file:
@@ -160,6 +161,7 @@ def get_config():
 
         LOG_NAME = CONFIG['Target name in logs']
         TARGET = CONFIG['Target account handle']
+        WHERE = int(CONFIG['Target image location on site'])
         BOT = CONFIG['Your account handle']
 
     for i in key:
@@ -195,12 +197,12 @@ def retrieve_text(site):
             break
                 
     html = BeautifulSoup(html_raw.text, 'html.parser')
-    target_image = html.find('img', title=True) # Locates the only image with title text (the target)
+    target_image = html.find_all('img', title=True) # Locates the only image with title text (the target)
     if target_image is None:
         print('Title extraction failed: image not found')
         return 'crash' # Enter log protection mode
     
-    title = target_image['title'] # Extracts the title text
+    title = target_image[WHERE]['title'] # Extracts the title text
     tweet = 'Alt/title text: "{}"'.format(title) # Construct the main Tweet body
 
     if len(tweet) <= 280: # Char limit
