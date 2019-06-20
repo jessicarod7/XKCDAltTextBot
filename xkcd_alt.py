@@ -16,6 +16,7 @@ LOG_NAME = None
 BOT = None
 TARGET = None
 WHERE = 0
+URL_NUMBER = 0
 
 class Twitter():
     """This class handles all API requests to Twitter."""
@@ -149,7 +150,7 @@ class Twitter():
         
 def get_config():
     """This function retrieves API keys, access tokens, and other key data from the config file."""
-    global LOG_NAME, TARGET, WHERE, BOT
+    global LOG_NAME, TARGET, URL_NUMBER, WHERE, BOT
 
     print("Building OAuth header...")
     with open('config.yaml') as config_file:
@@ -161,6 +162,7 @@ def get_config():
 
         LOG_NAME = CONFIG['Target name in logs']
         TARGET = CONFIG['Target account handle']
+        URL_NUMBER = int(CONFIG['Tweet URL location:'])
         WHERE = int(CONFIG['Target image location on site'])
         BOT = CONFIG['Your account handle']
 
@@ -248,7 +250,7 @@ if __name__ == '__main__':
                     print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
                     continue
                 elif new_tweet_check == original_tweet: # Confirmed new Tweet
-                    [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
+                    [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
                     if body == 'crash':
                         crash()
 
