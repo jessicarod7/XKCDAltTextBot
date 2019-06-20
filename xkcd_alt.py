@@ -1,15 +1,20 @@
 """This is the XKCD Alt Text Bot.
 
-This bot checks once every 15 seconds for new Tweets from @xkcdComic. If one is found, it accesses the
-linked comic, extracts the image alt text, and Tweets it as a reply."""
+This bot checks once every 15 seconds for new Tweets from a target bot. If one is found, it accesses
+the linked image, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
-import os # API keys & access tokens
+import yaml # API keys, access tokens, and custom logs
 import math # Round up number of tweets needed
 import re # Finds the most recent bot tweet
 import requests # Accessing API
 from requests_oauthlib import OAuth1 # OAuth
 from bs4 import BeautifulSoup # HTML searching
+
+# Global vars
+LOG_NAME = None
+BOT = None
+TARGET = None
 
 class Twitter():
     """This class handles all API requests to Twitter."""
@@ -18,70 +23,70 @@ class Twitter():
         self.auth = auth
     
     def get(self):
-        """This function determines if a new comic has been posted, and returns it.
+        """This function determines if a new Tweet has been posted, and returns it.
         
-        Mentions of 'comic' refer to @xkcdComic, mentions of 'alt' refer to @XKCDAltTextBot."""
-        # Build payloads for comic bot and alt text bot search
-        alt_payload = {'q': 'from:XKCDAltTextBot', 'result_type': 'recent', 'count': '10'}
-        comic_payload = {'q': 'from:xkcdComic', 'result_type': 'recent', 'count': '1'}
+        Mentions of 'target' refer to the target Twitter bot, mentions of 'bot' or 'this' refer to this Twitter bot."""
+        # Build payloads for source bot and this bot search
+        bot_payload = {'q': 'from:{}'.format(BOT), 'result_type': 'recent', 'count': '10'}
+        target_payload = {'q': 'from:{}'.format(TARGET), 'result_type': 'recent', 'count': '1'}
 
         # Retrieve data from Twitter searches
         for attempt in range(6):
             if attempt == 5: # Too many attempts
-                print('Twitter search failed ({}), see below response.'.format(str(comic_raw.status_code)))
-                print('Twitter error message:\n\n{}'.format(comic_raw.json()))
-                del alt_payload, comic_payload
+                print('Twitter search failed ({}), see below response.'.format(str(target_raw.status_code)))
+                print('Twitter error message:\n\n{}'.format(target_raw.json()))
+                del bot_payload, target_payload
                 return 'crash' # Enter log protection mode
             
-            print('Searching for new comics...')
-            alt_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
-                                    params=alt_payload, auth=self.auth)
-            comic_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
-                                    params=comic_payload, auth=self.auth)
+            print('Searching for new {}s...'.format(LOG_NAME))
+            bot_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+                                    params=bot_payload, auth=self.auth)
+            target_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+                                    params=target_payload, auth=self.auth)
             
-            if comic_raw.status_code == 200: # Good request
+            if target_raw.status_code == 200: # Good request
                 pass
-            elif comic_raw.status_code >= 429 or comic_raw.status_code == 420:
+            elif target_raw.status_code >= 429 or target_raw.status_code == 420:
                 # Twitter issue or rate limiting
-                print('Twitter search failed ({})'.format(comic_raw.status_code))
+                print('Twitter search failed ({})'.format(target_raw.status_code))
                 print('Reattempting in 5 minutes...')
                 time.sleep(300) # sleep for 5 minutes and reattempt
                 continue
             else: # Other problem in code
-                print('Twitter search failed ({}), see below '.format(str(comic_raw.status_code)) +
+                print('Twitter search failed ({}), see below '.format(str(target_raw.status_code)) +
                       'response.')
-                print('Twitter error message:\n\n{}'.format(comic_raw.json()))
-                del alt_payload, comic_payload, alt_raw, comic_raw
+                print('Twitter error message:\n\n{}'.format(target_raw.json()))
+                del bot_payload, target_payload, bot_raw, target_raw
                 return 'crash' # Enter log protection mode
             
             # Convert to JSON
-            alt = alt_raw.json()
-            comic = comic_raw.json()
+            bot_json = bot_raw.json()
+            target_json = target_raw.json()
 
             # Create a list of all reply IDs
-            alt_replies = [alt['statuses'][i]['in_reply_to_status_id'] for i in
-                           range(len(alt['statuses']))]
+            bot_replies = [bot_json['statuses'][i]['in_reply_to_status_id'] for i in
+                           range(len(bot_json['statuses']))]
 
             try:
-                if comic['statuses'][0]['id'] is None:
+                if target_json['statuses'][0]['id'] is None:
                     print('Twitter search failed: No Tweet found')
-                    del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                    del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                     return 'crash' # Enter log protection mode
             except IndexError:
                 print('Twitter search failed: No Tweet found')
-                del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                 return 'crash' # Enter log protection mode
 
             try:    
-                if alt_replies.index(comic['statuses'][0]['id']) is not ValueError:
+                if bot_replies.index(target_json['statuses'][0]['id']) is not ValueError:
                     # This tweet has already been replied to
-                    del alt_payload, comic_payload, alt_raw, comic_raw, alt, comic
+                    del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                     return None # Sleep for 15 seconds
             except ValueError: # Supposedly valid comment
-                return comic['statuses'][0] # Return comic Tweet
+                return target_json['statuses'][0] # Return target Tweet
 
     def post(self, tweet, reply):
-        """This function Tweets the alt (title) text as a reply to @xkcdComic."""
+        """This function Tweets the alt (title) text as a reply to the target account."""
         print('Tweeting...')
 
         tweet_payload = {'status': tweet, 'in_reply_to_status_id': reply,
@@ -141,24 +146,32 @@ class Twitter():
         
         return None
         
-def get_auth():
-    """This function retrieves the API keys and access tokens from environmental variables."""
+def get_config():
+    """This function retrieves API keys, access tokens, and other key data from the config file."""
+    global LOG_NAME, TARGET, BOT
+
     print("Building OAuth header...")
-    key = [os.environ.get('XKCD_API_KEY', None),
-           os.environ.get('XKCD_API_SECRET_KEY', None),
-           os.environ.get('XKCD_ACCESS_TOKEN', None),
-           os.environ.get('XKCD_ACCESS_SECRET_TOKEN', None)]
+    with open('config.yaml') as config_file:
+        CONFIG = yaml.load(config_file)
+        key = [CONFIG['API Key'],
+               CONFIG['API Secret Key'],
+               CONFIG['Access Token'],
+               CONFIG['Access Token Secret']]
+
+        LOG_NAME = CONFIG['Target name in logs']
+        TARGET = CONFIG['Target account handle']
+        BOT = CONFIG['Your account handle']
+
     for i in key:
         if i is None: # Verify keys were loaded
-            print("OAuth initiation failed: Environmental variable not found")
+            print("OAuth initiation failed: API key or access token not found")
             del key
             return 'crash' # Enter log protection mode
-
     auth = OAuth1(key[0], key[1], key[2], key[3])
     print('OAuth initiation successful!')
+
     del key
     return auth
-
 
 def retrieve_text(site):
     """This retrieves the HTML of the website, isolates the image title text, and formats it for the
@@ -168,26 +181,26 @@ def retrieve_text(site):
         html_raw = requests.get(site) # Retrieving raw HTML data
         if html_raw.status_code != 200: # Data not successfully retrieved
             if attempt < 6:
-                print('Could not access XKCD ({}). '.format(html_raw.status_code) +
+                print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
                       'Trying again in 10 seconds...')
                 time.sleep(10) # Make 6 attempts with 10 second delays
             elif attempt < 10:
-                print('Could not access XKCD ({}). '.format(html_raw.status_code) +
+                print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
                       'Trying again in 60 seconds...')
                 time.sleep(60) # Make 4 attempts with 60 seconds delays
             else:
-                print('XKCD retrieval failed: could not access {}'.format(site))
+                print('{} retrieval failed: could not access {}'.format(LOG_NAME, site))
                 return 'crash' # Enter log protection mode
         else: # Data retrieved
             break
                 
     html = BeautifulSoup(html_raw.text, 'html.parser')
-    comic = html.find('img', title=True) # Locates the only image with title text (the comic)
-    if comic is None:
+    target_image = html.find('img', title=True) # Locates the only image with title text (the target)
+    if target_image is None:
         print('Title extraction failed: image not found')
         return 'crash' # Enter log protection mode
     
-    title = comic['title'] # Extracts the title text
+    title = target_image['title'] # Extracts the title text
     tweet = 'Alt/title text: "{}"'.format(title) # Construct the main Tweet body
 
     if len(tweet) <= 280: # Char limit
@@ -196,7 +209,7 @@ def retrieve_text(site):
         num_tweets = math.ceil(len(tweet) / 280)
 
     print('Tweet constructed')
-    del html_raw, html, comic, title
+    del html_raw, html, target_image, title
     return [tweet, num_tweets]
 
 def crash():
@@ -208,46 +221,46 @@ def crash():
         time.sleep(1200)
         continue
 
-# Main program
-# All mentions of 'crash' mean the program has, and is entering log protection mode
-auth = get_auth() # Build authentication header
-if auth == 'crash':
-    crash()
-twitter = Twitter(auth)
+if __name__ == '__main__':
+    # All mentions of 'crash' mean the program has crashed, and is entering log protection mode
+    auth = get_config() # Build authentication header and get config data
+    if auth == 'crash':
+        crash()
+    twitter = Twitter(auth)
 
-while True: # Initialize main account loop
-    new_tweet_check = None
+    while True: # Initialize main account loop
+        new_tweet_check = None
 
-    for i in range(2):
-        original_tweet = twitter.get() # Check for new comics
+        for i in range(2):
+            original_tweet = twitter.get() # Check for new Tweets
 
-        if original_tweet == 'crash':
-            crash()
-        elif original_tweet is None:
-            print('No new comics found. Sleeping for 15 seconds...')
-            time.sleep(15)
-            break
-        else:
-            if new_tweet_check is None: # Unverified new Tweet
-                new_tweet_check = original_tweet
-                print('Potential new comic. Waiting 15 seconds to verify...')
-                continue
-            elif new_tweet_check == original_tweet: # Confirmed new Tweet
-                [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
-                if body == 'crash':
-                    crash()
-
-                if num_tweets == 1:
-                    result = twitter.post(body, original_tweet['id_str']) # Post one Tweet
-                else:
-                    result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
-                if result == 'crash':
-                            crash()
-                else: # Successful Tweet
-                    del result
-                    print('Sleeping for 60 seconds...')
-                    time.sleep(60)
-                    break
-            else:
-                print('Twitter search returned existing comic. Sleeping for 15 seconds...')
+            if original_tweet == 'crash':
+                crash()
+            elif original_tweet is None:
+                print('No new {}s found. Sleeping for 15 seconds...'.format(LOG_NAME))
+                time.sleep(15)
                 break
+            else:
+                if new_tweet_check is None: # Unverified new Tweet
+                    new_tweet_check = original_tweet
+                    print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
+                    continue
+                elif new_tweet_check == original_tweet: # Confirmed new Tweet
+                    [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][0]['expanded_url'])
+                    if body == 'crash':
+                        crash()
+
+                    if num_tweets == 1:
+                        result = twitter.post(body, original_tweet['id_str']) # Post one Tweet
+                    else:
+                        result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
+                    if result == 'crash':
+                                crash()
+                    else: # Successful Tweet
+                        del result
+                        print('Sleeping for 60 seconds...')
+                        time.sleep(60)
+                        break
+                else:
+                    print('Twitter search returned existing {}. Sleeping for 15 seconds...'.format(LOG_NAME))
+                    break
