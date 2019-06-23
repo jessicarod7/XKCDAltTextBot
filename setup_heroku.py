@@ -18,6 +18,6 @@ if __name__ == '__main__':
         temp = subprocess.call('{} TARGET={} {}'.format(cmd, CONFIG['Target account handle'], appname), shell=True)
         temp = subprocess.call('{} URL_NUMBER={} {}'.format(cmd, CONFIG['Tweet URL location'], appname), shell=True)
         temp = subprocess.call('{} WHERE={} {}'.format(cmd, CONFIG['Target image location on site'], appname), shell=True)
-        temp = subprocess.call('{} LOG_NAME={} {}'.format(cmd, CONFIG['Your account handle'], appname), shell=True)
+        temp = subprocess.call('{} BOT={} {}'.format(cmd, CONFIG['Your account handle'], appname), shell=True)
         # This one identifies if the bot is running locally or on Heroku
         temp = subprocess.call('{} XKCD_APPNAME={} {}'.format(cmd, CONFIG['Heroku bot name'], appname), shell=True)
