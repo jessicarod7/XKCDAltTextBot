@@ -5,6 +5,7 @@ the linked image, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
 import yaml # API keys, access tokens, and custom logs
+import os # Used by Heroku for environmental variable
 import math # Round up number of tweets needed
 import re # Finds the most recent bot tweet
 import requests # Accessing API
@@ -151,20 +152,33 @@ class Twitter():
 def get_config():
     """This function retrieves API keys, access tokens, and other key data from the config file."""
     global LOG_NAME, TARGET, URL_NUMBER, WHERE, BOT
-
     print("Building OAuth header...")
-    with open('config.yaml') as config_file:
-        CONFIG = yaml.load(config_file)
-        key = [CONFIG['API Key'],
-               CONFIG['API Secret Key'],
-               CONFIG['Access Token'],
-               CONFIG['Access Token Secret']]
 
-        LOG_NAME = CONFIG['Target name in logs']
-        TARGET = CONFIG['Target account handle']
-        URL_NUMBER = int(CONFIG['Tweet URL location:'])
-        WHERE = int(CONFIG['Target image location on site'])
-        BOT = CONFIG['Your account handle']
+    if 'XKCD_APPNAME' in os.environ: # Running on a cloud server
+        key = [os.environ.get('API_KEY', None),
+           os.environ.get('API_SECRET_KEY', None),
+           os.environ.get('ACCESS_TOKEN', None),
+           os.environ.get('ACCESS_TOKEN_SECRET', None)]
+
+        LOG_NAME = os.environ.get('LOG_NAME', None)
+        TARGET = os.environ.get('TARGET', None)
+        URL_NUMBER = int(os.environ.get('URL_NUMBER', None))
+        WHERE = int(os.environ.get('WHERE', None))
+        BOT = os.environ.get('BOT', None)
+
+    else: # Running locally
+        with open('config.yaml') as config_file:
+            CONFIG = yaml.load(config_file)
+            key = [CONFIG['API Key'],
+                CONFIG['API Secret Key'],
+                CONFIG['Access Token'],
+                CONFIG['Access Token Secret']]
+
+            LOG_NAME = CONFIG['Target name in logs']
+            TARGET = CONFIG['Target account handle']
+            URL_NUMBER = int(CONFIG['Tweet URL location'])
+            WHERE = int(CONFIG['Target image location on site'])
+            BOT = CONFIG['Your account handle']
 
     for i in key:
         if i is None: # Verify keys were loaded
