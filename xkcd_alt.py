@@ -262,6 +262,7 @@ if __name__ == '__main__':
                 if new_tweet_check is None: # Unverified new Tweet
                     new_tweet_check = original_tweet
                     print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
+                    time.sleep(15)
                     continue
                 elif new_tweet_check == original_tweet: # Confirmed new Tweet
                     [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
