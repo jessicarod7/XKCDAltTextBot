@@ -242,32 +242,38 @@ def crash():
 if __name__ == '__main__':
     # All mentions of 'crash' mean the program has crashed, and is entering log protection mode
     auth = get_config() # Build authentication header and get config data
-    new_tweet_check = None
+    new_tweet_check = [0, None]
     if auth == 'crash':
         crash()
     twitter = Twitter(auth)
 
     while True: # Initialize main account loop
-        original_tweet = twitter.get() # Check for new Tweets
+        if new_tweet_check[0] > 3: # Too many attempts
+            print('Verification failed.')
+            new_tweet_check = [0, None]
+            continue
+        else:
+            original_tweet = twitter.get() # Check for new Tweets
 
         if original_tweet == 'crash':
-            new_tweet_check = None
+            new_tweet_check = [0, None]
             crash()
         elif original_tweet is None:
             print('No new {}s found. Sleeping for 15 seconds...'.format(LOG_NAME))
+            if new_tweet_check[0] > 0:
+                new_tweet_check[0] += 1
             time.sleep(15)
-            new_tweet_check = None
             continue
         else:
             if new_tweet_check is None: # Unverified new Tweet
-                new_tweet_check = original_tweet
+                new_tweet_check[1] = original_tweet
                 print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
                 time.sleep(15)
                 continue
-            elif new_tweet_check == original_tweet: # Confirmed new Tweet
+            elif new_tweet_check[1] == original_tweet: # Confirmed new Tweet
                 [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
                 if body == 'crash':
-                    new_tweet_check = None
+                    new_tweet_check = [0, None]
                     crash()
 
                 if num_tweets == 1:
@@ -275,15 +281,15 @@ if __name__ == '__main__':
                 else:
                     result = twitter.tweetstorm(body, num_tweets, original_tweet['id_str']) # Split into multiple Tweets
                 if result == 'crash':
-                    new_tweet_check = None
+                    new_tweet_check = [0, None]
                     crash()
                 else: # Successful Tweet
                     del result
                     print('Sleeping for 60 seconds...')
                     time.sleep(60)
-                    new_tweet_check = None
+                    new_tweet_check = [0, None]
                     continue
             else:
                 print('Twitter search returned existing {}. Sleeping for 15 seconds...'.format(LOG_NAME))
-                new_tweet_check = None
+                new_tweet_check[0] += 1
                 continue
