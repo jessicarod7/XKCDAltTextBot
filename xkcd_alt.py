@@ -168,7 +168,7 @@ def get_config():
 
     else: # Running locally
         with open('config.yaml') as config_file:
-            CONFIG = yaml.load(config_file)
+            CONFIG = yaml.load(config_file, Loader=yaml.FullLoader)
             key = [CONFIG['API Key'],
                 CONFIG['API Secret Key'],
                 CONFIG['Access Token'],
@@ -263,13 +263,11 @@ if __name__ == '__main__':
             if new_tweet_check[0] > 0:
                 new_tweet_check[0] += 1
             time.sleep(15)
-            continue
         else:
-            if new_tweet_check is None: # Unverified new Tweet
+            if new_tweet_check[1] is None: # Unverified new Tweet
                 new_tweet_check[1] = original_tweet
                 print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
                 time.sleep(15)
-                continue
             elif new_tweet_check[1] == original_tweet: # Confirmed new Tweet
                 [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
                 if body == 'crash':
@@ -288,8 +286,7 @@ if __name__ == '__main__':
                     print('Sleeping for 60 seconds...')
                     time.sleep(60)
                     new_tweet_check = [0, None]
-                    continue
             else:
                 print('Twitter search returned existing {}. Sleeping for 15 seconds...'.format(LOG_NAME))
                 new_tweet_check[0] += 1
-                continue
+                time.sleep(15)
