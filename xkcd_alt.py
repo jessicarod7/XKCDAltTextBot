@@ -4,6 +4,9 @@ This bot checks once every 15 seconds for new Tweets from a target bot. If one i
 the linked image, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
+import datetime # Cancels Tweet if older than 12 hours
+import calendar # Converts calendar abbreviation to integer
+from dateutil.tz import gettz # Switches to UTC in recent Tweet check
 import yaml # API keys, access tokens, and custom logs
 import os # Used by Heroku for environmental variable
 import math # Round up number of tweets needed
@@ -85,8 +88,26 @@ class Twitter():
                     # This tweet has already been replied to
                     del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                     return None # Sleep for 15 seconds
-            except ValueError: # Supposedly valid comment
-                return target_json['statuses'][0] # Return target Tweet
+            except (ValueError, NameError): # Supposedly valid comment, check 12hr limit
+                tweet_time_str = datetime.datetime(
+                    int(target_json['statuses'][0]['created_at'][-4:]),
+                    list(calendar.month_abbr).index(target_json['statuses'][0]['created_at'][4:7]),
+                    int(target_json['statuses'][0]['created_at'][8:10]),
+                    int(target_json['statuses'][0]['created_at'][11:13]),
+                    int(target_json['statuses'][0]['created_at'][14:16]),
+                    int(target_json['statuses'][0]['created_at'][17:19]),
+                    0,
+                    gettz('UTC')
+                )
+                # Twitter API adds 3 hours for some painful reason
+                tweet_time = time.mktime(tweet_time_str.timetuple()) - 10800
+
+                del bot_payload, target_payload, bot_raw, target_raw, bot_json
+                if time.mktime(datetime.datetime.utcnow().timetuple()) - tweet_time > 43200:
+                    del target_json
+                    return None # Cancel Tweet attempt
+                else:
+                    return target_json['statuses'][0] # Return target Tweet
 
     def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to the target account."""
@@ -266,8 +287,8 @@ if __name__ == '__main__':
         else:
             if new_tweet_check[1] is None: # Unverified new Tweet
                 new_tweet_check[1] = original_tweet
-                print('Potential new {}. Waiting 15 seconds to verify...'.format(LOG_NAME))
-                time.sleep(15)
+                print('Potential new {}. Waiting 5 seconds to verify...'.format(LOG_NAME))
+                time.sleep(5)
             elif new_tweet_check[1] == original_tweet: # Confirmed new Tweet
                 [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
                 if body == 'crash':
@@ -287,6 +308,6 @@ if __name__ == '__main__':
                     time.sleep(60)
                     new_tweet_check = [0, None]
             else:
-                print('Twitter search returned existing {}. Sleeping for 15 seconds...'.format(LOG_NAME))
+                print('Twitter search returned existing {}. Sleeping for 5 seconds...'.format(LOG_NAME))
                 new_tweet_check[0] += 1
-                time.sleep(15)
+                time.sleep(5)
