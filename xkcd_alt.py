@@ -286,10 +286,10 @@ if __name__ == '__main__':
             time.sleep(15)
         else:
             if new_tweet_check[1] is None: # Unverified new Tweet
-                new_tweet_check[1] = original_tweet
+                new_tweet_check[1]['id'] = original_tweet
                 print('Potential new {}. Waiting 5 seconds to verify...'.format(LOG_NAME))
                 time.sleep(5)
-            elif new_tweet_check[1] == original_tweet: # Confirmed new Tweet
+            elif new_tweet_check[1]['id'] == original_tweet: # Confirmed new Tweet
                 [body, num_tweets] = retrieve_text(original_tweet['entities']['urls'][URL_NUMBER]['expanded_url'])
                 if body == 'crash':
                     new_tweet_check = [0, None]
