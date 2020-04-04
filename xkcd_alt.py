@@ -6,7 +6,6 @@ the linked image, extracts the image alt text, and Tweets it as a reply."""
 import time # Program sleeping
 import datetime # Cancels Tweet if older than 12 hours
 import calendar # Converts calendar abbreviation to integer
-from dateutil.tz import gettz # Switches to UTC in recent Tweet check
 import yaml # API keys, access tokens, and custom logs
 import os # Used by Heroku for environmental variable
 import math # Round up number of tweets needed
@@ -32,34 +31,34 @@ class Twitter():
         """This function determines if a new Tweet has been posted, and returns it.
         
         Mentions of 'target' refer to the target Twitter bot, mentions of 'bot' or 'this' refer to this Twitter bot."""
-        # Build payloads for source bot and this bot search
-        bot_payload = {'q': 'from:{}'.format(BOT), 'result_type': 'recent', 'count': '10'}
-        target_payload = {'q': 'from:{}'.format(TARGET), 'result_type': 'recent', 'count': '1'}
+        # Build payloads for source bot and this bot retrieval
+        bot_payload = {'screen_name': '{}'.format(BOT), 'count': '10'}
+        target_payload = {'screen_name': '{}'.format(TARGET), 'count': '1'}
 
-        # Retrieve data from Twitter searches
+        # Retrieve data from Twitter retrievals
         for attempt in range(6):
             if attempt == 5: # Too many attempts
-                print('Twitter search failed ({}), see below response.'.format(str(target_raw.status_code)))
+                print('Twitter retrieval failed ({}), see below response.'.format(str(target_raw.status_code)))
                 print('Twitter error message:\n\n{}'.format(target_raw.json()))
                 del bot_payload, target_payload
                 return 'crash' # Enter log protection mode
             
-            print('Searching for new {}s...'.format(LOG_NAME))
-            bot_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+            print('Retrieving new {}s...'.format(LOG_NAME))
+            bot_raw = requests.get('https://api.twitter.com/1.1/statuses/user_timeline.json',
                                     params=bot_payload, auth=self.auth)
-            target_raw = requests.get('https://api.twitter.com/1.1/search/tweets.json',
+            target_raw = requests.get('https://api.twitter.com/1.1/statuses/user_timeline.json',
                                     params=target_payload, auth=self.auth)
             
             if target_raw.status_code == 200: # Good request
                 pass
             elif target_raw.status_code >= 429 or target_raw.status_code == 420:
                 # Twitter issue or rate limiting
-                print('Twitter search failed ({})'.format(target_raw.status_code))
+                print('Twitter retrival failed ({})'.format(target_raw.status_code))
                 print('Reattempting in 5 minutes...')
                 time.sleep(300) # sleep for 5 minutes and reattempt
                 continue
             else: # Other problem in code
-                print('Twitter search failed ({}), see below '.format(str(target_raw.status_code)) +
+                print('Twitter retrieval failed ({}), see below '.format(str(target_raw.status_code)) +
                       'response.')
                 print('Twitter error message:\n\n{}'.format(target_raw.json()))
                 del bot_payload, target_payload, bot_raw, target_raw
@@ -70,44 +69,28 @@ class Twitter():
             target_json = target_raw.json()
 
             # Create a list of all reply IDs
-            bot_replies = [bot_json['statuses'][i]['in_reply_to_status_id'] for i in
-                           range(len(bot_json['statuses']))]
+            bot_replies = [bot_json[i]['in_reply_to_status_id'] for i in
+                           range(len(bot_json))]
 
             try:
-                if target_json['statuses'][0]['id'] is None:
-                    print('Twitter search failed: No Tweet found')
+                if target_json[0]['id'] is None:
+                    print('Twitter retrieval failed: No Tweet found')
                     del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                     return 'crash' # Enter log protection mode
             except IndexError:
-                print('Twitter search failed: No Tweet found')
+                print('Twitter retrieval failed: No Tweet found')
                 del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
                 return 'crash' # Enter log protection mode
 
-            try:    
-                if bot_replies.index(target_json['statuses'][0]['id']) is not ValueError:
-                    # This tweet has already been replied to
-                    del bot_payload, target_payload, bot_raw, target_raw, bot_json, target_json
-                    return None # Sleep for 15 seconds
-            except (ValueError, NameError): # Supposedly valid comment, check 12hr limit
-                tweet_time_str = datetime.datetime(
-                    int(target_json['statuses'][0]['created_at'][-4:]),
-                    list(calendar.month_abbr).index(target_json['statuses'][0]['created_at'][4:7]),
-                    int(target_json['statuses'][0]['created_at'][8:10]),
-                    int(target_json['statuses'][0]['created_at'][11:13]),
-                    int(target_json['statuses'][0]['created_at'][14:16]),
-                    int(target_json['statuses'][0]['created_at'][17:19]),
-                    0,
-                    gettz('UTC')
-                )
-                # Twitter API adds 3 hours for some painful reason
-                tweet_time = time.mktime(tweet_time_str.timetuple()) - 10800
-
-                del bot_payload, target_payload, bot_raw, target_raw, bot_json
-                if time.mktime(datetime.datetime.utcnow().timetuple()) - tweet_time > 43200:
-                    del target_json
-                    return None # Cancel Tweet attempt
-                else:
-                    return target_json['statuses'][0] # Return target Tweet
+            for i in range(len(bot_replies)):
+                if bot_replies[i] == target_json[0]['id']:
+                    try:
+                        if bot_json[i]['retweeted_status'] is not None:
+                            continue # Retweet, keep going
+                    except KeyError:
+                        return None # Already replied, sleep for 15 seconds
+            
+            return target_json[0] # Return target Tweet
 
     def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to the target account."""
@@ -308,6 +291,6 @@ if __name__ == '__main__':
                     time.sleep(60)
                     new_tweet_check = [0, None]
             else:
-                print('Twitter search returned existing {}. Sleeping for 5 seconds...'.format(LOG_NAME))
+                print('Twitter retrieval returned existing {}. Sleeping for 5 seconds...'.format(LOG_NAME))
                 new_tweet_check[0] += 1
                 time.sleep(5)
