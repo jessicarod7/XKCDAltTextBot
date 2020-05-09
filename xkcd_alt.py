@@ -4,8 +4,9 @@ This bot checks once every 15 seconds for new Tweets from a target bot. If one i
 the linked image, extracts the image alt text, and Tweets it as a reply."""
 
 import time # Program sleeping
-import datetime # Cancels Tweet if older than 12 hours
+import datetime # Cancels Tweet if older than 6 hours
 import calendar # Converts calendar abbreviation to integer
+from dateutil.tz import gettz # Switches to UTC in recent Tweet check
 import yaml # API keys, access tokens, and custom logs
 import os # Used by Heroku for environmental variable
 import math # Round up number of tweets needed
@@ -90,7 +91,25 @@ class Twitter():
                     except KeyError:
                         return None # Already replied, sleep for 15 seconds
             
-            return target_json[0] # Return target Tweet
+            # Do not reply to tweets older than 6 hours
+            tweet_time_str = datetime.datetime(
+                int(target_json[0]['created_at'][-4:]),
+                list(calendar.month_abbr).index(target_json[0]['created_at'][4:7]),
+                int(target_json[0]['created_at'][8:10]),
+                int(target_json[0]['created_at'][11:13]),
+                int(target_json[0]['created_at'][14:16]),
+                int(target_json[0]['created_at'][17:19]),
+                0,
+                gettz('UTC')
+            )
+            tweet_time = time.mktime(tweet_time_str.timetuple())
+
+            del bot_payload, target_payload, bot_raw, target_raw, bot_json
+            if time.mktime(datetime.datetime.utcnow().timetuple()) - tweet_time > 21600:
+                del target_json
+                return None # Tweet is too old
+            else:
+                return target_json[0] # Return target Tweet
 
     def post(self, tweet, reply):
         """This function Tweets the alt (title) text as a reply to the target account."""
@@ -141,11 +160,11 @@ class Twitter():
             else: # Final tweet
                 twit = body[seek:] # Use the remaining characters
             
-            if n is 0:
+            if n == 0:
                 result = self.post(twit, orig_tweet) # Reply to the original tweet
             else:
                 result = self.post(twit, reply_to) # Reply to the previous tweet
-            if result is 'crash':
+            if result == 'crash':
                 return 'crash' # Enter log protection mode
             
             reply_to = result['id_str'] # Tweet for next twit to reply to
