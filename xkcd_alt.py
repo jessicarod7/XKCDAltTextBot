@@ -242,7 +242,9 @@ def retrieve_text(site):
         return 'crash' # Enter log protection mode
     
     title = target_image[WHERE]['title'] # Extracts the title text
-    tweet = 'Alt/title text: "{}"'.format(title) # Construct the main Tweet body
+    tweet_alt = 'Alt text @ https://www.explainxkcd.com/wiki/index.php/{}#Transcript'.format() # Construct the alt text Tweet part 
+    tweet_title = '\n\nTitle text: "{}"'.format(title) # Construct the title text Tweet part
+    tweet  = tweet_alt + tweet_title
 
     if len(tweet) <= 280: # Char limit
         num_tweets = 1 # The number of tweets that must be created

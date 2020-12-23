@@ -1,0 +1,12 @@
+-4 characters for "Alt/"
+
+Text:
+---
+Alt text @ https://www.explainxkcd.com/wiki/index.php/{comic no.}#Transcript
+
+---
++13+23 = +36 characters for alt and link
+
+NET +32 characters to be accomodated for
+
+TO ADD: grabbing comic no for correct link
