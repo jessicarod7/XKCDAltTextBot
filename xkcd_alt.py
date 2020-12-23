@@ -245,14 +245,14 @@ def retrieve_text(site):
     tweet_title = 'Title text: "{}"'.format(title) 
     
     # This block acts as a Tweet 'header'
-    tweet_alt_size = 36 # URL is 23 chars
-    tweet_alt = 'Alt text @ https://www.explainxkcd.com/wiki/index.php/{}#Transcript'.format(site[-5:-1]) + '\n\n'
-    tweet = tweet_alt + tweet_title
+    tweet_header_size = 36 # URL is 23 chars
+    tweet_header = 'Alt text @ https://www.explainxkcd.com/wiki/index.php/{}#Transcript'.format(site[-5:-1]) + '\n\n'
+    tweet = tweet_header + tweet_title
 
-    if (len(tweet_title) + tweet_alt_size) <= 280: # Char limit, incl. link
+    if (len(tweet_title) + tweet_header_size) <= 280: # Char limit, incl. link
         num_tweets = 1 # The number of tweets that must be created
     else:
-        num_tweets = math.ceil((len(tweet_title) + tweet_alt_size) / 280)
+        num_tweets = math.ceil((len(tweet_title) + tweet_header_size) / 280)
 
     print('Tweet constructed')
     del html_raw, html, target_image, title
