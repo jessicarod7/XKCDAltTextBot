@@ -242,14 +242,17 @@ def retrieve_text(site):
         return 'crash' # Enter log protection mode
     
     title = target_image[WHERE]['title'] # Extracts the title text
-    tweet_alt = 'Alt text @ https://www.explainxkcd.com/wiki/index.php/{}#Transcript'.format(site[-5:-1]) # Construct the alt text Tweet part 
-    tweet_title = '\n\nTitle text: "{}"'.format(title) # Construct the title text Tweet part
+    tweet_title = 'Title text: "{}"'.format(title) 
+    
+    # This block acts as a Tweet 'header'
+    tweet_alt_size = 36 # URL is 23 chars
+    tweet_alt = 'Alt text @ https://www.explainxkcd.com/wiki/index.php/{}#Transcript'.format(site[-5:-1]) + '\n\n'
     tweet = tweet_alt + tweet_title
 
-    if (len(tweet_title) + 34) <= 280: # Char limit, incl. link
+    if (len(tweet_title) + tweet_alt_size) <= 280: # Char limit, incl. link
         num_tweets = 1 # The number of tweets that must be created
     else:
-        num_tweets = math.ceil((len(tweet_title) + 34) / 280)
+        num_tweets = math.ceil((len(tweet_title) + tweet_alt_size) / 280)
 
     print('Tweet constructed')
     del html_raw, html, target_image, title
