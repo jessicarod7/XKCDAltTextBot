@@ -191,7 +191,7 @@ def get_config():
 
     else: # Running locally
         with open('config.yaml') as config_file:
-            CONFIG = yaml.load(config_file, Loader=yaml.FullLoader)
+            CONFIG = yaml.safe_load(config_file)
             key = [CONFIG['API Key'],
                 CONFIG['API Secret Key'],
                 CONFIG['Access Token'],
