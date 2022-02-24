@@ -219,7 +219,9 @@ def retrieve_text(site):
     Tweet."""
     for attempt in range(11):
         print('Accessing {} (attempt {} of 11)'.format(site, attempt+1))
-        html_raw = requests.get(site) # Retrieving raw HTML data
+        # Add user agent to minimize 404 errors
+        ua_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'}
+        html_raw = requests.get(site, headers=ua_header) # Retrieving raw HTML data
         if html_raw.status_code != 200: # Data not successfully retrieved
             if attempt < 6:
                 print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
