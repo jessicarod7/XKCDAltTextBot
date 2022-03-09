@@ -217,20 +217,24 @@ def get_config():
 def retrieve_text(site):
     """This retrieves the HTML of the website, isolates the image title text, and formats it for the
     Tweet."""
-    for attempt in range(11):
-        print('Accessing {} (attempt {} of 11)'.format(site, attempt+1))
+    for attempt in range(101):
+        print('Accessing {} (attempt {} of 100)'.format(site, attempt+1))
         # Add user agent to minimize 404 errors
         ua_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'}
         html_raw = requests.get(site, headers=ua_header) # Retrieving raw HTML data
         if html_raw.status_code != 200: # Data not successfully retrieved
-            if attempt < 6:
+            if attempt < 60:
+                print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
+                      'Trying again in 5 seconds...')
+                time.sleep(5) # 5 minutes of attempts
+            elif attempt < 90:
                 print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
                       'Trying again in 10 seconds...')
-                time.sleep(10) # Make 6 attempts with 10 second delays
-            elif attempt < 10:
+                time.sleep(10) # Another 5 minutes of attempts
+            elif attempt < 100:
                 print('Could not access {} ({}). '.format(LOG_NAME, html_raw.status_code) +
-                      'Trying again in 60 seconds...')
-                time.sleep(60) # Make 4 attempts with 60 seconds delays
+                      'Trying again in 30 seconds...')
+                time.sleep(30) # Last 5 minutes of attempts
             else:
                 print('{} retrieval failed: could not access {}'.format(LOG_NAME, site))
                 return 'crash' # Enter log protection mode
