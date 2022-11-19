@@ -1,5 +1,7 @@
 # XKCDAltTextBot
 
+[This project and the associated bot have been deactivated.](https://twitter.com/XKCDAltTextBot/status/1593661485196115968) Thanks for your support, and follow my GitHub for whatever I do next!
+
 This Twitter bot replies to tweets from [@xkcdComic](https://twitter.com/xkcdComic) with the alt text of the most recent XKCD comic.
 
 ## Example
